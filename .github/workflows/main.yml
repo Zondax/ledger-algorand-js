@@ -1,0 +1,34 @@
+name: "Main"
+on:
+  - push
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    outputs:
+      uid_gid: ${{ steps.get-user.outputs.uid_gid }}
+      datetime: ${{ steps.get-datetime.outputs.datetime }}
+    steps:
+      - id: get-user
+        run: echo "uid_gid=$(id -u):$(id -g)" >> $GITHUB_OUTPUT
+      - id: get-datetime
+        run: echo "datetime=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+
+  build:
+    needs: [configure]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Install node
+        uses: actions/setup-node@v4
+      - name: Install dependencies
+        run: yarn install
+      - name: Run linter
+        run: yarn lint
+      - name: Run formatter
+        run: yarn format
+      - name: Build
+        run: yarn build

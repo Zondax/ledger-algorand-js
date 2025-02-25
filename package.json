@@ -1,0 +1,71 @@
+{
+  "name": "@zondax/ledger-algorand",
+  "version": "0.0.1",
+  "description": "Node API for the Algorand App (Ledger Nano S/X/S+/Flex/Stax)",
+  "keywords": [
+    "Zondax",
+    "Ledger",
+    "Typescript",
+    "Javascript",
+    "Algorand"
+  ],
+  "homepage": "https://github.com/zondax/ledger-algorand-js-priv",
+  "bugs": {
+    "url": "https://github.com/zondax/ledger-algorand-js-priv/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zondax/ledger-algorand-js-priv.git"
+  },
+  "license": "Apache-2.0",
+  "author": "Zondax AG",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "typings": "./dist/index.d.ts",
+  "files": [
+    "dist/**"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "format": "FORCE_COLOR=1 prettier --write . && sort-package-json",
+    "format:check": "FORCE_COLOR=1 prettier --check .",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
+    "test": "yarn build && jest",
+    "upgrade": "bunx npm-check-updates -i"
+  },
+  "dependencies": {
+    "@ledgerhq/hw-transport": "^6.28.0",
+    "@msgpack/msgpack": "^2.8.0"
+  },
+  "devDependencies": {
+    "@types/ledgerhq__hw-transport": "^4.21.4",
+    "@types/node": "^20.11.24",
+    "@typescript-eslint/eslint-plugin": "^6.13.1",
+    "@typescript-eslint/parser": "^6.13.1",
+    "bip32": "^4.0.0",
+    "bip39": "^3.0.4",
+    "core-js": "^3.28.0",
+    "crypto-js": "4.2.0",
+    "eslint": "^8.34.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-jest": "^27.2.1",
+    "eslint-plugin-prettier": "^5.0.1",
+    "eslint-plugin-tsdoc": "^0.3.0",
+    "eslint-plugin-unused-imports": "^4.1.4",
+    "jest": "^29.4.2",
+    "prettier": "^3.1.0",
+    "secp256k1": "^5.0.0",
+    "@truestamp/canonify": "^2.1.0",
+    "typescript": "^5.3.2",
+    "@ledgerhq/hw-transport-mocker": "^6.29.3",
+    "@trivago/prettier-plugin-sort-imports": "^4.3.0",
+    "@types/jest": "29.5.13",
+    "sort-package-json": "^2.10.1",
+    "ts-jest": "^29.2.5"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
