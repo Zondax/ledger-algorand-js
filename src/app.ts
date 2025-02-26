@@ -380,7 +380,16 @@ export default class AlgorandApp {
 
       let pubKey: ResponseAddress
       if (signingData.hdPath) {
-        let account = parseInt(signingData.hdPath.split('/')[3].replace("'", ''))
+        const hdPathParts = signingData.hdPath.split('/');
+        if (hdPathParts.length !== 5 || 
+            hdPathParts[0] !== 'm' ||
+            hdPathParts[1] !== "44'" ||
+            hdPathParts[2] !== "283'" ||
+            !hdPathParts[3].endsWith("'") ||
+            hdPathParts[4] !== '0') {
+            throw new Error('Invalid HD path for Algorand');
+        }
+        let account = parseInt(hdPathParts[3].replace("'", ''))
         pubKey = await this.getPubkey(account)
       } else {
         pubKey = await this.getPubkey()
