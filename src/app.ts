@@ -396,7 +396,7 @@ export default class AlgorandApp {
       }
 
       if (!signingData.signer || pubKey.publicKey !== signingData.signer) {
-          throw new Error('Invalid Signer');
+          throw new Error('Invalid Signer, the signer in the transaction is not the same as the device');
       }
 
       // decode data
@@ -405,7 +405,7 @@ export default class AlgorandApp {
               decodedData = Buffer.from(signingData.data, 'base64');
               break;
           default:
-              throw new Error('Failed decoding');
+              throw new Error('Failed decoding, the data must be base64 encoded');
       }
 
       // validate against schema
@@ -451,7 +451,7 @@ export default class AlgorandApp {
               throw new Error('Invalid Scope');
       }
 
-      const signatureResponse = await this.rawSign(signingData.domain, decodedData, toSign);
+      const signatureResponse = await this.rawSign(pubKey.publicKey.toString('hex'), signingData.domain, signingData.authenticationData, decodedData, toSign, signingData.requestId, signingData.hdPath);
       const signature: Uint8Array = signatureResponse.signature;
 
       // craft response
@@ -461,10 +461,15 @@ export default class AlgorandApp {
       }
   }
 
-  private async rawSign(domain: string, data: Uint8Array, toSign: Uint8Array): Promise<ResponseSign> {
+  private async rawSign(signer: string, domain: string, authenticatorData: Uint8Array, data: Uint8Array, toSign: Uint8Array, requestId?: string, hdpath?: string): Promise<ResponseSign> {
     const message = Buffer.concat([
         Buffer.from(toSign),
         Buffer.from(domain + '\0'),
+        Buffer.from(signer + '\0'),
+        Buffer.from(requestId ? requestId + '\0' : '\0'),
+        Buffer.from(hdpath ? hdpath + '\0' : '\0'),
+        Buffer.from([authenticatorData.length]),
+        authenticatorData,
         data
     ])
 
