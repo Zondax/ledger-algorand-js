@@ -462,7 +462,19 @@ export default class AlgorandApp {
   }
 
   private async rawSign(signer: string, domain: string, authenticatorData: Uint8Array, data: Uint8Array, toSign: Uint8Array, requestId?: string, hdpath?: string): Promise<ResponseSign> {
+    let accountId = 0
+
+    if (hdpath) {
+      const hdPathParts = hdpath.split('/');
+      accountId = parseInt(hdPathParts[3].replace("'", ''))
+    }
+    
+    // Create a 4-byte buffer for accountId instead of 1 byte
+    const accountIdBuffer = Buffer.alloc(4);
+    accountIdBuffer.writeUInt32BE(accountId);
+    
     const message = Buffer.concat([
+        accountIdBuffer, // Use 4-byte buffer instead of Buffer.from([accountId])
         Buffer.from(toSign),
         Buffer.from(domain + '\0'),
         Buffer.from(signer + '\0'),
@@ -486,7 +498,7 @@ export default class AlgorandApp {
     let response = Buffer.from([])
     for (let i = 0; i < chunks.length; i++) {
       const isLastChunk = i === chunks.length - 1;
-      const p1 = i === 0 ? P1_VALUES.MSGPACK_FIRST : P1_VALUES.MSGPACK_ADD;
+      const p1 = i === 0 ? P1_VALUES.MSGPACK_FIRST_ACCOUNT_ID : P1_VALUES.MSGPACK_ADD;
       const p2 = isLastChunk ? P2_VALUES.MSGPACK_LAST : P2_VALUES.MSGPACK_ADD;
 
       response = await this.transport.send(CLA, INS.SIGN_ARBITRARY, p1, p2, chunks[i]);
