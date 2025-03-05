@@ -1,4 +1,3 @@
-
 /** ******************************************************************************
  *  (c) 2018 - 2022 Zondax AG
  *  (c) 2016-2017 Ledger
@@ -305,72 +304,6 @@ export default class AlgorandApp {
         }
       }, processErrorResponse)
     })
-  }
-  async signGroup(accountId = 0, groupTxn: Buffer[]) {
-    let numOfTxns = groupTxn.length
-    let results: ResponseSign[] = [];
-    let txnIsToSign: boolean[] = new Array(numOfTxns).fill(true);
-
-    if (numOfTxns === 0) {
-      throw new Error('No transactions to sign')
-    } else if (numOfTxns === 1) {
-      throw new Error('Single transaction in group')
-    } else if (numOfTxns > 16) {
-      throw new Error('Too many transactions in group')
-    }
-
-    let responsePubKey = await this.getPubkey(accountId)
-    let senderPubKey = responsePubKey.publicKey.toString('hex')
-
-    for (let i = 0; i < groupTxn.length; i++) {
-      let sender = this.parseTxSender(groupTxn[i])
-
-      if (sender !== senderPubKey) {
-        numOfTxns -= 1
-        txnIsToSign[i] = false
-      }
-    }
-
-    if (numOfTxns <= 0) {
-      throw new Error('No transactions were meant to be signed by the device')
-    }
-
-    for (let i = 0; i < groupTxn.length; i++) {
-      let result: ResponseSign
-
-      if (txnIsToSign[i]) {
-        result = await this.sign(accountId, groupTxn[i], numOfTxns);
-
-        if (result.return_code !== ERROR_CODE.NoError) {
-          throw new Error(`Error signing transaction in group`);
-        }
-      } else {
-        result = {
-          return_code: 0x6985,
-          error_message: 'The sender in the transaction is not the same as the device',
-          signature: Buffer.from([]),
-          returnCode: 0x6985,
-          errorMessage: 'The sender in the transaction is not the same as the device'
-        }
-      }
-
-      results.push(result);
-    }
-
-    return results;
-  }
-
-  parseTxSender(txn: Buffer): string {
-    try {
-      const decoded = decode(txn);
-      if (typeof decoded === 'object' && decoded !== null && 'snd' in decoded) {
-        // @ts-ignore - We know snd exists from the check above
-        return Buffer.from(decoded.snd).toString('hex');
-      }
-      throw new Error('Invalid transaction format: snd field not found');
-    } catch (e) {
-      throw new Error(`Failed to parse msgpack`);
-    }
   }
 
   async signData(signingData: StdSigData, metadata: StdSignMetadata): Promise<StdSigDataResponse> {
