@@ -310,8 +310,8 @@ export default class AlgorandApp {
       // decode signing data with chosen metadata.encoding
       let decodedData: Uint8Array
       let toSign: Uint8Array
-
       let pubKey: ResponseAddress
+
       if (signingData.hdPath) {
         const hdPathParts = signingData.hdPath.split('/');
         if (hdPathParts.length !== 6 || 
@@ -322,8 +322,8 @@ export default class AlgorandApp {
             hdPathParts[4] !== '0') {
             throw new Error('Invalid HD path for Algorand');
         }
-        let account = parseInt(hdPathParts[3].replace("'", ''))
-        pubKey = await this.getPubkey(account)
+        let accountId = getAccountIdFromHdPath(signingData.hdPath)
+        pubKey = await this.getPubkey(accountId)
       } else {
         pubKey = await this.getPubkey()
       }
@@ -353,16 +353,16 @@ export default class AlgorandApp {
               try {
                   clientDataJson = JSON.parse(decodedData.toString());
               } catch (e) {
-                  throw new Error('Bad JSON');
+                  throw new Error('Bad JSON, could not parse');
               }
 
               const canonifiedClientDataJson = canonify(clientDataJson);
               if (!canonifiedClientDataJson) {
-                  throw new Error('Bad JSON');
+                  throw new Error('Bad JSON, could not canonify');
               }
 
-              const domain: string = signingData.domain ?? (() => { throw new Error('Missing Domain') })()
-              const authenticatorData: Uint8Array = signingData.authenticationData ?? (() => { throw new Error('Missing Authentication Data') })()
+              const domain: string = signingData.domain ?? (() => { throw new Error('Domain not found in the payload') })()
+              const authenticatorData: Uint8Array = signingData.authenticationData ?? (() => { throw new Error('Authentication Data not found in the payload') })()
 
               // Craft authenticatorData from domain
               // sha256
@@ -398,8 +398,7 @@ export default class AlgorandApp {
     let accountId = 0
 
     if (hdpath) {
-      const hdPathParts = hdpath.split('/');
-      accountId = parseInt(hdPathParts[3].replace("'", ''))
+      accountId = getAccountIdFromHdPath(hdpath)
     }
     
     // Create a 4-byte buffer for accountId instead of 1 byte
@@ -450,4 +449,9 @@ export default class AlgorandApp {
       error_message: errorCodeToString(return_code),
     }
   }
+}
+
+function getAccountIdFromHdPath(hdpath: string): number {
+  const hdPathParts = hdpath.split('/');
+  return parseInt(hdPathParts[3].replace("'", ''))
 }
