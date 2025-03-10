@@ -353,16 +353,16 @@ export default class AlgorandApp {
               try {
                   clientDataJson = JSON.parse(decodedData.toString());
               } catch (e) {
-                  throw new Error('Bad JSON, could not parse');
+                  throw new Error('Bad JSON');
               }
 
               const canonifiedClientDataJson = canonify(clientDataJson);
               if (!canonifiedClientDataJson) {
-                  throw new Error('Bad JSON, could not canonify');
+                  throw new Error('Bad JSON');
               }
 
-              const domain: string = signingData.domain ?? (() => { throw new Error('Domain not found in the payload') })()
-              const authenticatorData: Uint8Array = signingData.authenticationData ?? (() => { throw new Error('Authentication Data not found in the payload') })()
+              const domain: string = signingData.domain ?? (() => { throw new Error('Missing Domain') })()
+              const authenticatorData: Uint8Array = signingData.authenticationData ?? (() => { throw new Error('Missing Authentication Data') })()
 
               // Craft authenticatorData from domain
               // sha256
