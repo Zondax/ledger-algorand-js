@@ -329,7 +329,7 @@ export default class AlgorandApp {
       }
 
       if (!signingData.signer || pubKey.publicKey !== signingData.signer) {
-          throw new Error('Invalid Signer, the signer in the transaction is not the same as the device');
+          throw new Error('Invalid Signer');
       }
 
       // decode data
@@ -338,7 +338,7 @@ export default class AlgorandApp {
               decodedData = Buffer.from(signingData.data, 'base64');
               break;
           default:
-              throw new Error('Failed decoding, the data must be base64 encoded');
+              throw new Error('Failed decoding');
       }
 
       // validate against schema
