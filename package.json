@@ -36,7 +36,8 @@
   },
   "dependencies": {
     "@ledgerhq/hw-transport": "^6.28.0",
-    "@msgpack/msgpack": "^2.8.0"
+    "@msgpack/msgpack": "^2.8.0",
+    "@zondax/ledger-js": "^1.2.0"
   },
   "devDependencies": {
     "@types/ledgerhq__hw-transport": "^4.21.4",
