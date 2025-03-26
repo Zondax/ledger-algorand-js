@@ -110,9 +110,6 @@ export class AlgorandApp extends BaseApp {
             const pubkey = response.readBytes(PUBKEYLEN)
             const address = response.getAvailableBuffer().toString()
 
-            console.log(pubkey.toString('hex'))
-            console.log(address)
-
             return {
                 pubkey,
                 address,
@@ -122,6 +119,7 @@ export class AlgorandApp extends BaseApp {
         }
     }
 
+    // Legacy
     async getPubkey(path: string, showAddrInDevice = false): Promise<ResponseAddress> {
         const bip44PathBuffer = this.serializePath(path)
         const p1 = showAddrInDevice ? AlgorandApp._params.p1Values.SHOW_ADDRESS_IN_DEVICE : AlgorandApp._params.p1Values.ONLY_RETRIEVE
@@ -193,18 +191,55 @@ export class AlgorandApp extends BaseApp {
         }
     }
 
+    /* From APDUSPEC :
+
+    | Range     | Field                  | Restrictions             | Max Size  |
+    |-----------|----------------------- |--------------------------| --------- |
+    | 0..31     | Signer                 | -                        | 32 bytes  |
+    | 32        | Scope                  | see Supported Scopes     | 1 byte    |
+    | 33        | Encoding               | see Supported Encodings  | 1 byte    |
+    | 34        | Data Len               |                          | TBD       |
+    |           | Data                   | Canonical JSON           | 512 bytes |
+    |           | Domain Len             |                          | TBD       |
+    |           | Domain                 | Representable ASCII      | 256 bytes |
+    |           | Request ID  Len        |                          | TBD       |
+    |           | Request ID             | Representable Hex String | 256 bytes |
+    |           | Authenticated Data Len |                          | TBD       |
+    |           | Authenticated Data     | Encoding format TBD      | 256 bytes |
+
+    ##### Supported Scopes
+      - AUTH : 1
+
+    ##### Supported Encodings
+      - Base64 : 1
+    */
+
     async signData(signingData: StdSigData, metadata: StdSignMetadata): Promise<StdSigDataResponse> {
-        const dataBuffer = Buffer.isBuffer(signingData.data) ? signingData.data : Buffer.from(signingData.data);
-        const signerBuffer = Buffer.from(signingData.signer || '');
-        const domainBuffer = Buffer.from(signingData.domain || '');
-        const authDataBuffer = Buffer.from(signingData.authenticationData || '');
+
+        let dataToEncode;
+        try {
+            const decodedData = Buffer.from(signingData.data, 'base64').toString();
+            const jsonObj = JSON.parse(decodedData);
+            dataToEncode = JSON.stringify(jsonObj, Object.keys(jsonObj).sort());
+        } catch (e) {
+            console.warn('Bad JSON', e);
+            throw new Error('Bad JSON');
+        }
+
+        const signerBuffer = Buffer.from(signingData.signer);
+        const scopeBuffer = Buffer.from([metadata.scope]);
+        const encodingBuffer = serializeEncoding(metadata.encoding);
+        const dataBuffer = Buffer.from(dataToEncode);
+        const domainBuffer = Buffer.from(signingData.domain);
+        const authDataBuffer = Buffer.from(signingData.authenticationData);
         const requestIdBuffer = Buffer.from(signingData.requestId || '');
-        
         const pathBuffer = signingData.hdPath ? this.serializePath(signingData.hdPath) : this.serializePath("m/44'/283'/0'/0/0");
 
+        // TODO: Define max lengths
+        // Probably 4 bytes is too much for each length
         const messageSize = 
+            signerBuffer.length +
             4 + dataBuffer.length +
-            4 + signerBuffer.length +
             4 + domainBuffer.length +
             4 + authDataBuffer.length +
             4 + requestIdBuffer.length;
@@ -212,21 +247,33 @@ export class AlgorandApp extends BaseApp {
         const messageBuffer = Buffer.alloc(messageSize);
         let offset = 0;
         
-        function writeField(buffer: Buffer) {
-            messageBuffer.writeUInt32BE(buffer.length, offset);
-            offset += 4;
+        function writeField(buffer: Buffer, variableLength: boolean = false) {
+            if (variableLength) {
+                messageBuffer.writeUInt32BE(buffer.length, offset);
+                offset += 4;
+            }
             buffer.copy(messageBuffer, offset);
             offset += buffer.length;
         }
         
-        writeField(dataBuffer);
+        console.log('dataBuffer', dataBuffer.toString('hex'))
+        console.log('signerBuffer', signerBuffer.toString('hex'))
+        console.log('domainBuffer', domainBuffer.toString('hex'))
+        console.log('authDataBuffer', authDataBuffer.toString('hex'))
+        console.log('requestIdBuffer', requestIdBuffer.toString('hex'))
+
         writeField(signerBuffer);
-        writeField(domainBuffer);
-        writeField(authDataBuffer);
-        writeField(requestIdBuffer);
+        writeField(scopeBuffer);
+        writeField(encodingBuffer);
+        writeField(dataBuffer, true);
+        writeField(domainBuffer, true);
+        writeField(authDataBuffer, true);
+        writeField(requestIdBuffer, true);
         
         const chunks = this.messageToChunks(messageBuffer);
-        
+
+        console.log(chunks.map(chunk => chunk.toString('hex')).join(' '))
+
         let signature: Buffer;
 
         try {
@@ -234,7 +281,14 @@ export class AlgorandApp extends BaseApp {
             
             let p2: number = AlgorandApp._params.p2Values.P2_MORE_CHUNKS;
             
-            let response = await this.sendGenericChunk(AlgorandApp._INS.SIGN_ARBITRARY, p2, 0, chunks.length + 1, firstChunk, AlgorandApp._params.p1ValuesSign.P1_FIRST_HDPATH);
+            let response = await this.sendGenericChunk(
+                AlgorandApp._INS.SIGN_ARBITRARY,
+                p2,
+                0,
+                chunks.length + 1,
+                firstChunk,
+                AlgorandApp._params.p1ValuesSign.P1_FIRST_HDPATH
+            );
             
             for (let i = 0; i < chunks.length; i++) {
                 p2 = (i < chunks.length - 1) ? 
@@ -264,5 +318,14 @@ export class AlgorandApp extends BaseApp {
             hdPath: signingData.hdPath,
             signature: signature,
         }
+    }
+}
+
+function serializeEncoding(encoding: string): Buffer {
+    switch (encoding) {
+        case 'base64':
+            return Buffer.from([0x01]);
+        default:
+            throw new Error('Unsupported encoding');
     }
 }
