@@ -1,0 +1,22 @@
+name: CI-ts
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ts-checks:
+    uses: zondax/_workflows/.github/workflows/_checks-ts.yaml@main
+    with:
+      disable_linting: true
+      disable_tests: true

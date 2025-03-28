@@ -5,8 +5,8 @@
 
 This package provides a basic client library to communicate with the Algorand App running in a Ledger Nano S/X
 
-We recommend using the npmjs package in order to receive updates/fixes.
+We recommend using this npm package in order to receive updates/fixes.
 
 ## Notes
 
-Use `yarn install` to avoid issues.
+Use `bun install` to avoid issues.
