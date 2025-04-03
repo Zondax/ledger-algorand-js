@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Transport from '@ledgerhq/hw-transport'
 import { LedgerError } from '../common'
-import AlgorandApp from '../index'
+import { AlgorandApp } from '../index'
 
 // Mock the Transport class
 const mockSend = vi.fn()
