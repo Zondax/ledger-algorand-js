@@ -1,1 +1,1 @@
-export const PUBKEYLEN = 32;
+export const PUBKEYLEN = 32
