@@ -17,7 +17,7 @@ import type Transport from '@ledgerhq/hw-transport'
 import BaseApp, {BIP32Path, ERROR_DESCRIPTION_OVERRIDE, INSGeneric, processErrorResponse, processResponse, ResponsePayload } from '@zondax/ledger-js'
 import {LedgerError} from './common'
 import {PUBKEYLEN} from './consts'
-import {ResponseSign, ResponseAddress, ResponseVersion} from './types'
+import {ResponseSign, ResponseAddress, ResponseVersion, StdSignMetadata, StdSigDataResponse, StdSigData} from './types'
 
 enum ArbitrarySignError {
   ErrorInvalidScope = 0x6988,
@@ -55,7 +55,8 @@ export class AlgorandApp extends BaseApp {
         cla: 0x80,
         ins: {...AlgorandApp._INS} as INSGeneric,
         p1Values: {ONLY_RETRIEVE: 0x00 as 0, SHOW_ADDRESS_IN_DEVICE: 0x01 as 1},
-        p1ValuesSign: {P1_FIRST: 0x00 as 0, P1_FIRST_ACCOUNT_ID: 0x01 as 1, P1_FIRST_HDPATH: 0x02 as 2, P1_MORE: 0x80 as 128, P1_WITH_REQUEST_USER_APPROVAL: 0x80 as 128},
+        p1ValuesSignLegacy: {P1_FIRST: 0x00 as 0, P1_FIRST_ACCOUNT_ID: 0x01 as 1, P1_MORE: 0x80 as 128, P1_WITH_REQUEST_USER_APPROVAL: 0x80 as 128},
+        p1ValuesSignArbitrary: {P1_INIT: 0x00 as 0, P1_ADD: 0x01 as 1, P1_LAST: 0x02 as 2},
         p2Values: {P2_MORE_CHUNKS: 0x80 as 128, P2_LAST_CHUNK: 0x00 as 0},
         chunkSize: 250,
         requiredPathLengths: [5],
@@ -70,7 +71,7 @@ export class AlgorandApp extends BaseApp {
 
     protected async sendGenericChunk(ins: number, p2: number, chunkIdx: number, chunkNum: number, chunk: Buffer, p1?: number): Promise<ResponsePayload> {
         if (p1 === undefined) {
-            p1 = chunkIdx === 0 ? AlgorandApp._params.p1ValuesSign.P1_FIRST_ACCOUNT_ID : AlgorandApp._params.p1ValuesSign.P1_MORE;
+            p1 = chunkIdx === 0 ? AlgorandApp._params.p1ValuesSignLegacy.P1_FIRST_ACCOUNT_ID : AlgorandApp._params.p1ValuesSignLegacy.P1_MORE;
         }
 
         const statusList = [LedgerError.NoErrors, LedgerError.DataIsInvalid, LedgerError.BadKeyHandle]
@@ -205,4 +206,120 @@ export class AlgorandApp extends BaseApp {
             throw processErrorResponse(e)
         }
     }
+
+  async signData(
+    signingData: StdSigData,
+    metadata: StdSignMetadata
+  ): Promise<StdSigDataResponse> {
+    let dataToEncode
+
+    try {
+      const decodedData = Buffer.from(signingData.data, 'base64').toString()
+      const jsonObj = JSON.parse(decodedData)
+      dataToEncode = JSON.stringify(jsonObj, Object.keys(jsonObj).sort())
+    } catch (e) {
+      console.warn('Bad JSON', e)
+      throw new Error('Bad JSON')
+    }
+
+    const signerBuffer = Buffer.from(signingData.signer)
+    const scopeBuffer = Buffer.from([metadata.scope])
+    const encodingBuffer = serializeEncoding(metadata.encoding)
+    const dataBuffer = Buffer.from(dataToEncode)
+    const domainBuffer = Buffer.from(signingData.domain)
+    const requestIdBuffer = Buffer.from(signingData.requestId || '')
+    const authDataBuffer = Buffer.from(signingData.authenticationData)
+    const pathBuffer = signingData.hdPath
+      ? this.serializePath(signingData.hdPath)
+      : this.serializePath("m/44'/283'/0'/0/0")
+
+    // TODO: Define max lengths
+    // Probably 4 bytes is too much for each length
+    const messageSize =
+      signerBuffer.length +
+      4 +
+      dataBuffer.length +
+      4 +
+      domainBuffer.length +
+      4 +
+      requestIdBuffer.length +
+      4 +
+      authDataBuffer.length
+
+    const messageBuffer = Buffer.alloc(messageSize)
+    let offset = 0
+
+    function writeField(buffer: Buffer, variableLength: boolean = false) {
+      if (variableLength) {
+        messageBuffer.writeUInt32BE(buffer.length, offset)
+        offset += 4
+      }
+      buffer.copy(messageBuffer, offset)
+      offset += buffer.length
+    }
+
+    writeField(signerBuffer)
+    writeField(scopeBuffer)
+    writeField(encodingBuffer)
+    writeField(dataBuffer, true)
+    writeField(domainBuffer, true)
+    writeField(requestIdBuffer, true)
+    writeField(authDataBuffer, true)
+
+    const chunks = this.messageToChunks(messageBuffer)
+
+    let signature: Buffer
+    let p2 = 0 // Not used for arbitrary sign
+    try {
+      const firstChunk = pathBuffer
+
+      let response = await this.sendGenericChunk(
+        AlgorandApp._INS.SIGN_ARBITRARY,
+        p2,
+        0,
+        chunks.length + 1,
+        firstChunk,
+        AlgorandApp._params.p1ValuesSignArbitrary.P1_INIT
+      )
+
+      for (let i = 0; i < chunks.length; i++) {
+        const p1 =
+          i < chunks.length - 1
+            ? AlgorandApp._params.p1ValuesSignArbitrary.P1_ADD
+            : AlgorandApp._params.p1ValuesSignArbitrary.P1_LAST
+
+        response = await this.sendGenericChunk(
+          AlgorandApp._INS.SIGN_ARBITRARY,
+          p2,
+          i + 1,
+          chunks.length + 1,
+          chunks[i],
+          p1
+        )
+      }
+
+      signature = response.readBytes(response.length())
+    } catch (e) {
+      throw processErrorResponse(e, ARBITRARY_SIGN_ERROR_DESCRIPTIONS)
+    }
+
+    return {
+      data: signingData.data,
+      signer: signingData.signer,
+      domain: signingData.domain,
+      authenticationData: signingData.authenticationData,
+      requestId: signingData.requestId,
+      hdPath: signingData.hdPath,
+      signature: signature,
+    }
+  }
+}
+
+function serializeEncoding(encoding: string): Buffer {
+  switch (encoding) {
+    case 'base64':
+      return Buffer.from([0x01])
+    default:
+      throw new Error('Unsupported encoding')
+  }
 }
