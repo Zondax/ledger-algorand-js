@@ -250,6 +250,7 @@ export class AlgorandApp extends BaseApp {
 
       return {
         signature: signatureResponse.readBytes(signatureResponse.length()),
+        returnCode: LedgerError.NoErrors
       } as ResponseSign
     } catch (e) {
       throw processErrorResponse(e)
