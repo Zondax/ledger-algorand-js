@@ -22,7 +22,7 @@ import BaseApp, {
   processResponse,
   ResponsePayload,
 } from '@zondax/ledger-js'
-import { LedgerError } from './common'
+import { ERROR_DESCRIPTION, LedgerError } from './common'
 import { PUBKEYLEN } from './consts'
 import {
   ResponseAddress,
@@ -174,8 +174,11 @@ export class AlgorandApp extends BaseApp {
     const response = await super.getVersion()
     return {
       ...response,
-      return_code: LedgerError.NoErrors,
       returnCode: LedgerError.NoErrors,
+      errorMessage: ERROR_DESCRIPTION[LedgerError.NoErrors],
+      // Legacy
+      return_code: LedgerError.NoErrors,
+      error_message: ERROR_DESCRIPTION[LedgerError.NoErrors],
     } as ResponseVersion
   }
 
@@ -206,11 +209,13 @@ export class AlgorandApp extends BaseApp {
       return {
         publicKey: Buffer.from(pubkey),
         address: Buffer.from(address),
-        return_code: LedgerError.NoErrors,
         returnCode: LedgerError.NoErrors,
+        errorMessage: ERROR_DESCRIPTION[LedgerError.NoErrors],
         // Legacy
         bech32_address: Buffer.from(address),
         compressed_pk: Buffer.from(pubkey),
+        return_code: LedgerError.NoErrors,
+        error_message: ERROR_DESCRIPTION[LedgerError.NoErrors],
       } as ResponseAddress
     } catch (e) {
       throw processErrorResponse(e)
@@ -250,7 +255,11 @@ export class AlgorandApp extends BaseApp {
 
       return {
         signature: signatureResponse.readBytes(signatureResponse.length()),
-        returnCode: LedgerError.NoErrors
+        returnCode: LedgerError.NoErrors,
+        errorMessage: ERROR_DESCRIPTION[LedgerError.NoErrors],
+        // Legacy
+        return_code: LedgerError.NoErrors,
+        error_message: ERROR_DESCRIPTION[LedgerError.NoErrors],
       } as ResponseSign
     } catch (e) {
       throw processErrorResponse(e)
@@ -287,19 +296,20 @@ export class AlgorandApp extends BaseApp {
       return {
         publicKey: Buffer.from(pubkey),
         address: Buffer.from(address),
-        return_code: LedgerError.NoErrors,
         returnCode: LedgerError.NoErrors,
+        errorMessage: ERROR_DESCRIPTION[LedgerError.NoErrors],
         // Legacy
         bech32_address: Buffer.from(address),
         compressed_pk: Buffer.from(pubkey),
+        return_code: LedgerError.NoErrors,
+        error_message: ERROR_DESCRIPTION[LedgerError.NoErrors],
       } as ResponseAddress
     } catch (e) {
       throw processErrorResponse(e)
     }
   }
 
-  async signData(
-    signingData: StdSigData,
+  async signData( signingData: StdSigData,
     metadata: StdSignMetadata
   ): Promise<StdSigDataResponse> {
     let dataToEncode
@@ -318,7 +328,11 @@ export class AlgorandApp extends BaseApp {
     const encodingBuffer = serializeEncoding(metadata.encoding)
     const dataBuffer = Buffer.from(dataToEncode)
     const domainBuffer = Buffer.from(signingData.domain)
-    const requestIdBuffer = Buffer.from(signingData.requestId || '')
+    let requestIdBuffer = Buffer.from([])
+    if (signingData.requestId) {
+      const requestIdHexStr = Buffer.from(signingData.requestId, 'base64').toString('hex');
+      requestIdBuffer = Buffer.from(requestIdHexStr, 'hex');
+    }
     const authDataBuffer = Buffer.from(signingData.authenticationData)
     const pathBuffer = signingData.hdPath
       ? this.serializePath(signingData.hdPath)
@@ -327,7 +341,9 @@ export class AlgorandApp extends BaseApp {
     // TODO: Define max lengths
     // Probably 4 bytes is too much for each length
     const messageSize =
-      signerBuffer.length +
+      signerBuffer.length + 
+      scopeBuffer.length + 
+      encodingBuffer.length +
       4 +
       dataBuffer.length +
       4 +
