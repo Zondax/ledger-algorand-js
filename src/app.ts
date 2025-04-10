@@ -321,26 +321,23 @@ export class AlgorandApp extends BaseApp {
       throw new Error('Failed decoding')
     }
 
-    if (!signingData.domain) {
-      throw new Error('Missing Domain')
-    }
-
-    if (!signingData.authenticationData) {
-      throw new Error('Missing Authentication Data')
-    }
-
     const signerBuffer = Buffer.from(signingData.signer)
-
     const scopeBuffer = Buffer.from([metadata.scope])
     const encodingBuffer = serializeEncoding(metadata.encoding)
     const dataBuffer = decodedData
-    const domainBuffer = Buffer.from(signingData.domain)
+    let domainBuffer = Buffer.from([])
+    if(signingData.domain) {
+      domainBuffer = Buffer.from(signingData.domain)
+    }
     let requestIdBuffer = Buffer.from([])
     if (signingData.requestId) {
       const requestIdHexStr = Buffer.from(signingData.requestId, 'base64').toString('hex');
       requestIdBuffer = Buffer.from(requestIdHexStr, 'hex');
     }
-    const authDataBuffer = Buffer.from(signingData.authenticationData)
+    let authDataBuffer = Buffer.from([])
+    if (signingData.authenticationData) {
+      authDataBuffer = Buffer.from(signingData.authenticationData)
+    }
     const pathBuffer = signingData.hdPath
       ? this.serializePath(signingData.hdPath)
       : this.serializePath("m/44'/283'/0'/0/0")
