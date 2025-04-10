@@ -313,20 +313,27 @@ export class AlgorandApp extends BaseApp {
     metadata: StdSignMetadata
   ): Promise<StdSigDataResponse> {
     let dataToEncode
+    let decodedData
 
-    try {
-      const decodedData = Buffer.from(signingData.data, 'base64').toString()
-      const jsonObj = JSON.parse(decodedData)
-      dataToEncode = JSON.stringify(jsonObj, Object.keys(jsonObj).sort())
-    } catch (e) {
-      console.warn('Bad JSON', e)
-      throw new Error('Bad JSON')
+    if (metadata.encoding === 'base64') {
+      decodedData = Buffer.from(signingData.data, 'base64')
+    } else {
+      throw new Error('Failed decoding')
+    }
+
+    if (!signingData.domain) {
+      throw new Error('Missing Domain')
+    }
+
+    if (!signingData.authenticationData) {
+      throw new Error('Missing Authentication Data')
     }
 
     const signerBuffer = Buffer.from(signingData.signer)
+
     const scopeBuffer = Buffer.from([metadata.scope])
     const encodingBuffer = serializeEncoding(metadata.encoding)
-    const dataBuffer = Buffer.from(dataToEncode)
+    const dataBuffer = decodedData
     const domainBuffer = Buffer.from(signingData.domain)
     let requestIdBuffer = Buffer.from([])
     if (signingData.requestId) {
