@@ -48,7 +48,6 @@ describe('AlgorandApp', () => {
       mockSend.mockResolvedValue(mockResponse)
 
       const result = await app.getVersion()
-      expect(result).toBeDefined()
       expect(result.major).toBe(2)
       expect(result.minor).toBe(0)
       expect(result.patch).toBe(0)
@@ -85,10 +84,11 @@ describe('AlgorandApp', () => {
       mockSend.mockResolvedValue(mockResponse)
 
       const result = await app.getPubkey()
-      expect(result).toBeDefined()
-      expect(result.publicKey).toBeDefined()
-      expect(result.address).toBeDefined()
       expect(result.returnCode).toBe(LedgerError.NoErrors)
+      
+      // Add more specific expectations to verify correct parsing
+      expect(result.publicKey).toEqual(Buffer.from(Array(32).fill(1)))
+      expect(result.address).toEqual(Buffer.from(Array(58).fill(2)))
     })
   })
 
@@ -106,10 +106,11 @@ describe('AlgorandApp', () => {
       mockSend.mockResolvedValue(mockResponse)
 
       const result = await app.getAddressAndPubKey()
-      expect(result).toBeDefined()
-      expect(result.publicKey).toBeDefined()
-      expect(result.address).toBeDefined()
       expect(result.returnCode).toBe(LedgerError.NoErrors)
+      
+      // Add more specific expectations to verify correct parsing
+      expect(result.publicKey).toEqual(Buffer.from(Array(32).fill(1)))
+      expect(result.address).toEqual(Buffer.from(Array(58).fill(2)))
     })
   })
 
@@ -127,9 +128,8 @@ describe('AlgorandApp', () => {
       mockSend.mockResolvedValue(mockResponse)
 
       const result = await app.sign(accountId, message)
-      expect(result).toBeDefined()
-      expect(result.signature).toBeDefined()
       expect(result.returnCode).toBe(LedgerError.NoErrors)
+      expect(result.signature).toEqual(Buffer.from(Array(64).fill(1)))
     })
   })
 
@@ -158,8 +158,7 @@ describe('AlgorandApp', () => {
         scope: 1,
         encoding: 'base64',
       })
-      expect(result).toBeDefined()
-      expect(result.signature).toBeDefined()
+      expect(result.signature).toEqual(Buffer.from(Array(64).fill(1)))
     })
   })
 })

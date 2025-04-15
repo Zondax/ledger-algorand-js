@@ -33,6 +33,9 @@ import {
   StdSignMetadata,
 } from './types'
 
+// Add this constant for the default signing path
+const DEFAULT_SIGN_DATA_PATH = "m/44'/283'/0'/0/0"
+
 enum ArbitrarySignError {
   ErrorInvalidScope = 0x6988,
   ErrorFailedDecoding = 0x6989,
@@ -325,22 +328,12 @@ export class AlgorandApp extends BaseApp {
     const scopeBuffer = Buffer.from([metadata.scope])
     const encodingBuffer = serializeEncoding(metadata.encoding)
     const dataBuffer = decodedData
-    let domainBuffer = Buffer.from([])
-    if(signingData.domain) {
-      domainBuffer = Buffer.from(signingData.domain)
-    }
-    let requestIdBuffer = Buffer.from([])
-    if (signingData.requestId) {
-      const requestIdHexStr = Buffer.from(signingData.requestId, 'base64').toString('hex');
-      requestIdBuffer = Buffer.from(requestIdHexStr, 'hex');
-    }
-    let authDataBuffer = Buffer.from([])
-    if (signingData.authenticationData) {
-      authDataBuffer = Buffer.from(signingData.authenticationData)
-    }
+    const domainBuffer = signingData.domain ? Buffer.from(signingData.domain) : Buffer.from([])
+    const requestIdBuffer = signingData.requestId ? Buffer.from(signingData.requestId, 'base64') : Buffer.from([])
+    const authDataBuffer = signingData.authenticationData ? Buffer.from(signingData.authenticationData) : Buffer.from([])
     const pathBuffer = signingData.hdPath
       ? this.serializePath(signingData.hdPath)
-      : this.serializePath("m/44'/283'/0'/0/0")
+      : this.serializePath(DEFAULT_SIGN_DATA_PATH)
 
     // TODO: Define max lengths
     // Probably 4 bytes is too much for each length
