@@ -312,7 +312,8 @@ export class AlgorandApp extends BaseApp {
     }
   }
 
-  async signData( signingData: StdSigData,
+  async signData(
+    signingData: StdSigData,
     metadata: StdSignMetadata
   ): Promise<StdSigDataResponse> {
     let dataToEncode
@@ -328,16 +329,22 @@ export class AlgorandApp extends BaseApp {
     const scopeBuffer = Buffer.from([metadata.scope])
     const encodingBuffer = serializeEncoding(metadata.encoding)
     const dataBuffer = decodedData
-    const domainBuffer = signingData.domain ? Buffer.from(signingData.domain) : Buffer.from([])
-    const requestIdBuffer = signingData.requestId ? Buffer.from(signingData.requestId, 'base64') : Buffer.from([])
-    const authDataBuffer = signingData.authenticationData ? Buffer.from(signingData.authenticationData) : Buffer.from([])
+    const domainBuffer = signingData.domain
+      ? Buffer.from(signingData.domain)
+      : Buffer.from([])
+    const requestIdBuffer = signingData.requestId
+      ? Buffer.from(signingData.requestId, 'base64')
+      : Buffer.from([])
+    const authDataBuffer = signingData.authenticationData
+      ? Buffer.from(signingData.authenticationData)
+      : Buffer.from([])
     const pathBuffer = signingData.hdPath
       ? this.serializePath(signingData.hdPath)
       : this.serializePath(DEFAULT_SIGN_DATA_PATH)
 
     const messageSize =
-      signerBuffer.length + 
-      scopeBuffer.length + 
+      signerBuffer.length +
+      scopeBuffer.length +
       encodingBuffer.length +
       2 +
       dataBuffer.length +

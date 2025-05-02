@@ -21,8 +21,8 @@ jobs:
   ts-checks:
     uses: zondax/_workflows/.github/workflows/_checks-ts.yaml@main
     with:
-      disable_linting: true
-      disable_tests: true
+      enable_linting: false
+      enable_tests: false
 
   publish:
     uses: zondax/_workflows/.github/workflows/_publish-npm.yaml@main

@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Transport from '@ledgerhq/hw-transport'
 import { LedgerError } from '../common'
-import { AlgorandApp, ResponseSign, StdSigData, StdSigDataResponse } from '../index'
+import {
+  AlgorandApp,
+  ResponseSign,
+  StdSigData,
+  StdSigDataResponse,
+} from '../index'
 
 // Mock the Transport class
 const mockSend = vi.fn()
@@ -85,7 +90,7 @@ describe('AlgorandApp', () => {
 
       const result = await app.getPubkey()
       expect(result.returnCode).toBe(LedgerError.NoErrors)
-      
+
       // Add more specific expectations to verify correct parsing
       expect(result.publicKey).toEqual(Buffer.from(Array(32).fill(1)))
       expect(result.address).toEqual(Buffer.from(Array(58).fill(2)))
@@ -107,7 +112,7 @@ describe('AlgorandApp', () => {
 
       const result = await app.getAddressAndPubKey()
       expect(result.returnCode).toBe(LedgerError.NoErrors)
-      
+
       // Add more specific expectations to verify correct parsing
       expect(result.publicKey).toEqual(Buffer.from(Array(32).fill(1)))
       expect(result.address).toEqual(Buffer.from(Array(58).fill(2)))
@@ -132,7 +137,6 @@ describe('AlgorandApp', () => {
       expect(result.signature).toEqual(Buffer.from(Array(64).fill(1)))
     })
   })
-
 
   describe('signData', () => {
     it('should sign an arbitrary message', async () => {
