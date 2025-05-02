@@ -335,19 +335,17 @@ export class AlgorandApp extends BaseApp {
       ? this.serializePath(signingData.hdPath)
       : this.serializePath(DEFAULT_SIGN_DATA_PATH)
 
-    // TODO: Define max lengths
-    // Probably 4 bytes is too much for each length
     const messageSize =
       signerBuffer.length + 
       scopeBuffer.length + 
       encodingBuffer.length +
-      4 +
+      2 +
       dataBuffer.length +
-      4 +
+      2 +
       domainBuffer.length +
-      4 +
+      2 +
       requestIdBuffer.length +
-      4 +
+      2 +
       authDataBuffer.length
 
     const messageBuffer = Buffer.alloc(messageSize)
@@ -355,8 +353,8 @@ export class AlgorandApp extends BaseApp {
 
     function writeField(buffer: Buffer, variableLength: boolean = false) {
       if (variableLength) {
-        messageBuffer.writeUInt32BE(buffer.length, offset)
-        offset += 4
+        messageBuffer.writeUInt16BE(buffer.length, offset)
+        offset += 2
       }
       buffer.copy(messageBuffer, offset)
       offset += buffer.length
