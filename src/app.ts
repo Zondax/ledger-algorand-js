@@ -143,7 +143,6 @@ export class AlgorandApp extends BaseApp {
   ) {
     const chunks = []
 
-    // First chunk prepend accountId if != 0
     let messageBuffer
 
     if (typeof message === 'string') {
@@ -152,15 +151,9 @@ export class AlgorandApp extends BaseApp {
       messageBuffer = message
     }
 
-    let buffer: Buffer
-
-    if (accountId !== 0) {
-      const accountIdBuffer = Buffer.alloc(4)
-      accountIdBuffer.writeUInt32BE(accountId)
-      buffer = Buffer.concat([accountIdBuffer, messageBuffer])
-    } else {
-      buffer = Buffer.concat([messageBuffer])
-    }
+    const accountIdBuffer = Buffer.alloc(4)
+    accountIdBuffer.writeUInt32BE(accountId)
+    const buffer = Buffer.concat([accountIdBuffer, messageBuffer])
 
     for (let i = 0; i < buffer.length; i += AlgorandApp._params.chunkSize) {
       let end = i + AlgorandApp._params.chunkSize
