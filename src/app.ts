@@ -228,6 +228,11 @@ export class AlgorandApp extends BaseApp {
   async sign(accountId = 0, message: string | Buffer): Promise<ResponseSign> {
     const chunks = AlgorandApp.prepareChunksFromAccountId(accountId, message)
 
+    let p1 =
+      accountId !== 0
+        ? AlgorandApp._params.p1ValuesSignLegacy.P1_FIRST_ACCOUNT_ID
+        : AlgorandApp._params.p1ValuesSignLegacy.P1_FIRST
+
     let p2 =
       chunks.length > 1
         ? AlgorandApp._params.p2Values.P2_MORE_CHUNKS
@@ -239,7 +244,8 @@ export class AlgorandApp extends BaseApp {
         p2,
         0,
         chunks.length,
-        chunks[0]
+        chunks[0],
+        p1
       )
 
       for (let i = 1; i < chunks.length; i += 1) {
