@@ -134,8 +134,7 @@ const signingData: StdSigData = {
   data: Buffer.from(canonify(req)).toString('base64'),
   signer: pubBuf,
   domain: domain,
-  // Uppercase Hex String, Base64-encoded
-  requestId: Buffer.from(Array(32).fill(0x41)).toString('base64'),
+  requestId: Buffer.from(randomBytes(32)).toString('base64'),
   authenticationData: new Uint8Array(
     createHash('sha256').update(domain).digest()
   ),
