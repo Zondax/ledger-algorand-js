@@ -117,20 +117,37 @@ export class AlgorandApp extends BaseApp {
       LedgerError.BadKeyHandle,
     ]
 
-    const responseBuffer = await this.transport.send(
-      this.CLA,
-      ins,
-      p1,
-      p2,
-      chunk,
-      statusList
-    )
-    const response = processResponse(
-      responseBuffer,
-      this.CUSTOM_APP_ERROR_DESCRIPTION
-    )
+    try {
+      const responseBuffer = await this.transport.send(
+        this.CLA,
+        ins,
+        p1,
+        p2,
+        chunk,
+        statusList
+      )
+      return processResponse(responseBuffer, this.CUSTOM_APP_ERROR_DESCRIPTION)
+    } catch (e) {
+      // Extract status code from error
+      const statusCode: number =
+        (e as any).statusCode ||
+        (e as any).returnCode ||
+        LedgerError.UnknownError
+      const message = (e as any).message
 
-    return response
+      // Create buffer based on whether error has a message
+      let buffer: Buffer
+      if (message?.length > 0) {
+        const messageBytes = Buffer.from(message, 'utf8')
+        buffer = Buffer.concat([messageBytes, Buffer.allocUnsafe(2)])
+        buffer.writeUInt16BE(statusCode, buffer.length - 2)
+      } else {
+        buffer = Buffer.allocUnsafe(2)
+        buffer.writeUInt16BE(statusCode, 0)
+      }
+
+      return processResponse(buffer, ARBITRARY_SIGN_ERROR_DESCRIPTIONS)
+    }
   }
 
   async signGetChunks(accountId: number, message: string | Buffer) {
